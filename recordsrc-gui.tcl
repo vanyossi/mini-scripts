@@ -10,20 +10,39 @@ wm title . "ffmpeg"
 
 set ::date [clock format [clock seconds] -format %m%d]
 
-set cmd1 [list ffmpeg -f x11grab -s 1680x1050 -r 15 -i :0.0 -f alsa -ac 2 -i default -c:v libx264 -preset ultrafast -pix_fmt yuv420p -vf scale=1280:-1 -an n_scr_${::date}.mp4 &]
+proc getName { name } {
+  set filename "${name}${::date}"
+  set tmpname $filename
+  
+  set s 0
+  while {[file exists ${filename}.mp4]} {
+    set filename $tmpname
+    incr s
+    set filename [join [list $filename "_$s"] {} ]
+  }
+  append filename ".mp4"
+  return $filename
+}
 
-#set cmd1 {ffmpeg -f x11grab -s 1680x1050 -r 8 -i :0.0 -f alsa -ac 2 -i default -f yuv4mpegpipe -pix_fmt yuv420p - | yuvfps -s 30:1 -r 30:1 - | ffmpeg -f yuv4mpegpipe -i - -c:v libx264 -preset ultrafast -pix_fmt yuv420p -vf scale=1280:-1 -an n_scr_${::date}.mp4 &}
+set ::cmd_real [list ffmpeg -f x11grab -s 1680x1050 -r 15 -i :0.0 -f alsa -ac 2 -i default -c:v libx264 -preset ultrafast -pix_fmt yuv420p -vf scale=1280:-1 -an [getName scr_real_] &]
 
-set id [list ps x | grep "ffmpeg -f" | cut -d " " -f 1]
+set ::cmd_timelapse [list ffmpeg -f x11grab -s 1680x1050 -r 8 -i :0.0 -f alsa -ac 2 -i default -f yuv4mpegpipe -pix_fmt yuv420p - | yuvfps -s 30:1 -r 30:1 - | ffmpeg -f yuv4mpegpipe -i - -c:v libx264 -preset ultrafast -pix_fmt yuv420p -vf scale=1280:-1 -an [getName scr_tmlps_] &]
 
-proc startCmd {} {
-  global cmd1 id cmdid
-  catch [exec {*}$cmd1]
+proc startCmd { mode } {
+  global cmd1 cmdid
+  
+  set id [list ps x | grep "ffmpeg -f" | cut -d " " -f 2]
+  append cmd ::cmd _ $mode
+  catch [exec {*}[subst $$cmd] ]
   exec sleep 1
+  
   set cmdres [exec {*}$id]
-	set cmdid [split $cmdres \n]
-	puts "=============== $cmdid"
-  #puts [exec echo $cmdid]
+  puts $cmdres
+  set cmdid [split $cmdres \n]
+  puts "=============== $cmdid"
+  
+  pack forget $::action_frame.sttime $::action_frame.streal
+  pack $::action_frame.stop -expand 1 -fill both -side top
 }
 
 proc stopCmd {} {
@@ -38,17 +57,20 @@ proc stopCmd {} {
 
 proc startGui {} {
   global fnames
-  frame .b -bd 5
-  pack .b
-  #entry .b.input -textvariable comment
-  #bind .b.input <Return> { convert $fnames }
-  #label .b.label -text "Comment:"
-  button .b.start -text "Start" -command { startCmd }
-  button .b.submit -text "Stop" -command { stopCmd }
-  #button .b.run -text "Select region" -command { takeShot [lindex $fnames 0] }
-  #pack .b.label .b.input -side left -expand 1 -fill x
-  pack .b.start .b.submit -side left
-  #takeShot [lindex $fnames 0]
+  set ::action_frame [makeGui .actions]
+}
+
+proc makeGui { w } {
+  ttk::frame $w -borderwidth 5
+  ttk::button $w.streal -text "Realtime" -command { startCmd "real" }
+  ttk::button $w.sttime -text "Timelapse" -command { startCmd "timelapse" }
+  ttk::button $w.stop -text "Stop" -command { stopCmd }
+
+  pack $w
+  pack $w.streal $w.sttime -side left
+  
+  return $w
 }
 
 startGui
+
