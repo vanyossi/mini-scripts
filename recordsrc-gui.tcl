@@ -31,7 +31,7 @@ set ::cmd_timelapse [list ffmpeg -f x11grab -s 1680x1050 -r 8 -i :0.0 -f alsa -a
 proc startCmd { mode } {
   global cmd1 cmdid
   
-  set id [list ps x | grep "ffmpeg -f" | cut -d " " -f 2]
+  set id [list ps x | grep "ffmpeg -f" | col -h | cut -d " " -f 1]
   append cmd ::cmd _ $mode
   catch [exec {*}[subst $$cmd] ]
   exec sleep 1
