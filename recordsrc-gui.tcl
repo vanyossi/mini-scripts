@@ -33,12 +33,12 @@ proc startCmd { mode } {
   
   set id [list ps x | grep "ffmpeg -f" | col -h | cut -d " " -f 1]
   append cmd ::cmd _ $mode
-  catch [exec {*}[subst $$cmd] ]
+  catch { set cmdid [exec {*}[subst $$cmd] ]}
   exec sleep 1
   
-  set cmdres [exec {*}$id]
-  puts $cmdres
-  set cmdid [split $cmdres \n]
+  # set cmdres [exec {*}$id]
+  # puts $cmdres
+  # set cmdid [split $cmdres \n]
   puts "=============== $cmdid"
   
   pack forget $::action_frame.sttime $::action_frame.streal
