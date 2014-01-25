@@ -75,7 +75,7 @@ proc rotatePoly {w tag Ox Oy ang} {
  }
 
 set arc_size [makeRect 128 118 196]
-set ::window_thumb [canvas .thumbnail -width 256 -height 256 -background grey88]
+set ::window_thumb [canvas .canvas -width 256 -height 256 -background grey88]
 $::window_thumb create oval $arc_size -outline gray94 -width 26
 set ::canvas_arc_object_bg [$::window_thumb create oval $arc_size -outline {lime green} -width 20]
 set ::canvas_arc_object [$::window_thumb create arc $arc_size -width 20 -style arc -start 90 -extent -360 -outline {lime green} ]
@@ -104,9 +104,9 @@ $::window_thumb create text 128 58 -text "" -justify center -font "FiraSans 16" 
 #rotatePoly $::window_thumb point_down 128 128 180
 
 bind . <KeyPress> { keySetTime %K }
-bind . <KeyPress-m> { convertTime %K }
-bind . <KeyPress-h> { convertTime %K }
-bind . <KeyPress-s> { convertTime %K }
+# bind . <KeyPress-m> { convertTime %K }
+# bind . <KeyPress-h> { convertTime %K }
+# bind . <KeyPress-c> { puts out }
 # bind . <Key> { puts %K }
 bind . <Return> { startTimer $::timer }
 bind . <KP_Enter> { startTimer $::timer }
@@ -153,30 +153,47 @@ proc markerTurnRed { c type dir } {
 	$c itemconfigure ${type}_$dir -fill #f82a2a
 	set ::timer_cmds(button_active) [after 200 [list $c itemconfigure ${type}_$dir -fill gray80] ]
 }
+# Sets a time according string
 proc keySetTime { k } {
 	catch {after cancel $::timer_cmds(key_set)}
-	if {[string is digit $k]} {
+	set k [string trimleft $k "KP_"]
+
+	if {[string is digit $k] || [string match \[mhs\] $k]} {
 		set text [$::window_thumb itemcget hover_text -text]
 		append text $k
 		$::window_thumb itemconfigure hover_text -text $text
+		# Set time inmediatly if two letters consecutive are pressed
+		if { [string is alpha -strict [string range $text end-1 end]] } {
+			convertTime
+			return
+		}
 	}
-	set ::timer_cmds(key_set) [after 5000 [list $::window_thumb itemconfigure hover_text -text {}]]
+	set ::timer_cmds(key_set) [after 1000 [list convertTime]]
 }
 
-proc convertTime { k } {
-	set time [$::window_thumb itemcget hover_text -text]
-	if {[string is digit -strict $time]} {
-		set text $time$k
-		$::window_thumb itemconfigure hover_text -text $text
-		switch -nocase -- $k {
-			s { }
-			m { set time [expr {$time *60}] }
-			h { set time [expr {$time *3600}] }
+proc convertTime { } {
+	set time_string [$::window_thumb itemcget hover_text -text]
+	set seconds 0
+	foreach char [split $time_string {}] {
+		if {[string is digit $char]} {
+			append num $char
+		} else {
+			if {![info exist num] || $num eq {}} { break }
+			switch -nocase -- $char {
+				s { lappend seconds $num }
+				m { lappend seconds [expr {$num *60}] }
+				h { lappend seconds [expr {$num *3600}] }
+			}
+			set num {}
 		}
+	}
+	set time [expr [join $seconds +]]
+
+	if {$time > 0} {
 		$::window_thumb itemconfigure $::canvas_text_object -text [clock format [expr {$::zerotime + $time}] -format %T]
 		set ::timer $time
-		after 1000 [list $::window_thumb itemconfigure hover_text -text {}]
 	}
+	after 1000 [list $::window_thumb itemconfigure hover_text -text {}]
 }
 
 # x y && (Y || dir )
@@ -243,6 +260,8 @@ proc minusOne {args} {
 	if {[clock scan $time -format %T] eq $::zerotime} {
 		set ::big_break 1
 		stopTimer
+		exec notify-send -u critical -i tclp -t 3000 "Counter end" &&
+		exec cmus-remote -f /usr/share/sounds/mistery_past.wav &&
 	}
 	incr ::seconds -1
 }
@@ -411,5 +430,8 @@ proc stopTimer {args} {
 }
 
 wm protocol . WM_DELETE_WINDOW { killrunning }
+# wm overrideredirect . 1
+#wm attributes . -alpha 1.2
+#puts [wm attributes .]
 pack $::window_thumb
 set ::running 0
