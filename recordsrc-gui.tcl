@@ -5,6 +5,7 @@
 #TODO Set name of file and date format.
 #TODO Documentation
 #TODO Set values from GUI
+package require Tk
 
 wm title . "ffmpeg"
 
@@ -24,17 +25,17 @@ proc getName { name } {
   return $filename
 }
 
-set ::cmd_real [list ffmpeg -f x11grab -s 1680x1050 -r 15 -i :0.0 -f alsa -ac 2 -i default -c:v libx264 -preset ultrafast -pix_fmt yuv420p -vf scale=1280:-1 -an [getName scr_real_] &]
+set ::cmd_real [list ffmpeg -f x11grab -s 1680x1050 -r 15 -i :0.0 -c:v libx264 -preset ultrafast -pix_fmt yuv420p -vf scale=1280:-1 -an [getName scr_real_] &]
 
-set ::cmd_timelapse [list ffmpeg -f x11grab -s 1680x1050 -r 8 -i :0.0 -f alsa -ac 2 -i default -f yuv4mpegpipe -pix_fmt yuv420p - | yuvfps -s 30:1 -r 30:1 - | ffmpeg -f yuv4mpegpipe -i - -c:v libx264 -preset ultrafast -pix_fmt yuv420p -vf scale=1280:-1 -an [getName scr_tmlps_] &]
+set ::cmd_timelapse [list ffmpeg -f x11grab -s 1680x1050 -r 8 -i :0.0 -f yuv4mpegpipe -pix_fmt yuv420p - | yuvfps -s 30:1 -r 30:1 - | ffmpeg -f yuv4mpegpipe -i - -c:v libx264 -preset ultrafast -pix_fmt yuv420p -vf scale=1280:-1 -an [getName scr_tmlps_] &]
 
 proc startCmd { mode } {
-  global cmd1 cmdid
+  global cmdid
   
-  set id [list ps x | grep "ffmpeg -f" | col -h | cut -d " " -f 1]
+  #set id [list ps x | grep "ffmpeg -f" | col -h | cut -d " " -f 1]
   append cmd ::cmd _ $mode
   catch { set cmdid [exec {*}[subst $$cmd] ]}
-  exec sleep 1
+  # exec sleep 1
   
   # set cmdres [exec {*}$id]
   # puts $cmdres
@@ -43,6 +44,8 @@ proc startCmd { mode } {
   
   pack forget $::action_frame.sttime $::action_frame.streal
   pack $::action_frame.stop -expand 1 -fill both -side top
+
+  lower .
 }
 
 proc stopCmd {} {
@@ -56,7 +59,7 @@ proc stopCmd {} {
 }
 
 proc startGui {} {
-  global fnames
+  # global fnames
   set ::action_frame [makeGui .actions]
 }
 
