@@ -27,12 +27,11 @@ proc run_animation1 {} {
 		.c coords hero $value3 300
 		.c coords clouds $value4 350
 	}
-	puts [.c coords clouds]
 	# clouds advance 120 each second
-	# Double animation flicker.
-	#animate do linear 900 300 -time 7.8 -fps 12 {
-	# 	.c coords clouds $value1 350
-	#}
+	# Double animation break al subsequent animations.
+	# animate do linear 900 300 -time 7.8 -fps 12 {
+	#  	.c coords clouds $value1 350
+	# }
 }
 proc run_animation2 { index } {
 	incr index
