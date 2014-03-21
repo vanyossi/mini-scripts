@@ -10,9 +10,10 @@ _prep_search_res()
 	#prints entries as newlines, finds line selected, removes extension txt
 	#note=$(echo $list | tr ' ' '\n' | sed -n ${1}p | sed 's%^\(.*\)\.txt$%\1%')
 	#prints entries as newlines, finds line selected, removes dir characters and extension
-	note=$(echo $list | tr ' ' '\n' | sed -n  -e "${1}s%^\./\(.*\)\.txt$%\1%p" -e "${1}s%^\(.*\)\.txt$%\1%p" )
+	note=$(echo "$list" | tr ' ' '\n' | sed -n  -e "${1}s%^\./\(.*\)\.txt$%\1%p" -e "${1}s%^\(.*\)\.txt$%\1%p" )
+	notify-send "$1"
 	#prepares selection for open in zim, uses spaces and colons instead of slash
-	note=$(echo $note | tr '_' ' ' | tr '/' ':')
+	note=$(echo "$note" | tr '_' ' ' | tr '/' ':')
 	#removes first 2 and last 4
 	#echo "${note:2:${#note}-6}"
 	#removes last characters
@@ -50,7 +51,7 @@ fi;
 number=0
 
 #List all containing search string
-for f in $list;
+for f in "$list";
 	do
 	number=$(expr $number + 1)
 	echo $number $f	
@@ -61,7 +62,7 @@ if [ $number == "0" ]; then
 	echo "No results found!"
 	exit
 #if only one item in list, select it
-elif [ $number == "1" ];then
+elif [ $number == "1" ]; then
 	_prep_search_res $number
 	exit
 fi
