@@ -1,81 +1,109 @@
 #!/bin/sh
-#First argument is the search string or cmd option
-#Folder containing notes
-noteDir=/home/tara/nalaf/nala/Dropbox/PlainText/Notational/
+# First argument is the search string or cmd option
 
-#library
-_prep_search_res()
-{
-	#Take substring using sed (or awk)
-	#prints entries as newlines, finds line selected, removes extension txt
-	#note=$(echo $list | tr ' ' '\n' | sed -n ${1}p | sed 's%^\(.*\)\.txt$%\1%')
-	#prints entries as newlines, finds line selected, removes dir characters and extension
-	note=$(echo "$list" | tr ' ' '\n' | sed -n  -e "${1}s%^\./\(.*\)\.txt$%\1%p" -e "${1}s%^\(.*\)\.txt$%\1%p" )
-	notify-send "$1"
-	#prepares selection for open in zim, uses spaces and colons instead of slash
-	note=$(echo "$note" | tr '_' ' ' | tr '/' ':')
-	#removes first 2 and last 4
-	#echo "${note:2:${#note}-6}"
-	#removes last characters
-	#"${note%.txt}"
-	#Comand to run
-	_run_noteApp "$note"
-}
+# Folder containing notes
+zimConfig="${HOME}/.config/zim/notebooks.list"
+
+# Save selected notbook and rearrange args.
+if test $(expr $1 : '[-].*') = 0
+	then
+	let notebook="$1"
+	set -- "${@:2:${#@}}"
+else
+	notebook="D"
+fi
+
+while read -r line
+do
+	if test "${line::1}" = "$notebook"
+	then
+		# echo "$line ${line::1}"
+		index=$(expr "$line" : '.*.=.')
+		noteDir=${HOME}${line:$index}
+		# ger last string after '/'
+		noteName=${line##*/}
+	fi
+	# echo $line
+done < $zimConfig
+
+cd $noteDir
+# ========================
+
 _run_noteApp()	
 {
-	zim Notational "$1"
+	nohup zim --standalone $noteName "$1" & disown
 	exit
 }
-#Do if argument is
-#	-s search
+
+# USAGE: nvxfce.sh [Notebook number] [option] String to search
+# -s search
 # -c search content
 # no argument, creates new list with argument name given ""
 
-#change to note directory to perform searchs
-cd $noteDir
-#if first argument "-c" searches content and not title
-if [ "$1" == "-c" ];then
-	list=$(grep -ri "$2" * -l)
+let i=1
 
-elif [ "$1" == "-s" ];then
-	#searech and replace: simple "tr ' ' '_'" but prone to error
-	#other way "sed 's/\s/_/g'"
-	nospace=$(echo "$2" | tr ' ' '_')
-	#use "ls -c" if sort by last mod date
-	#list=$(ls -1 --show-control-chars | grep -i "$nospace")
-	list=$(find . -iname "*${nospace}*")
+# if first argument "-c" searches content and not title
+if test $1 = "-c"
+then
+	search_str="${@:2:${#@}}"
+	for filename in $(grep -Hrli "$search_str" *)
+	do
+		list[$i]="${filename}"
+		let i++
+	done
+
+elif test $1 = "-s"
+then
+	# search and replace spaces for '_'
+	printf -v nospace "_%s" "${@:2:${#@}}"
+	nospace=${nospace:1}
+
+	for filename in *
+	do
+		if test $(expr match "$filename" "$nospace") -gt 0
+			then
+			list[$i]="${filename}"
+			let i++
+		fi
+	done
+	# printf "%s\n" ${list[@]}
 else
 	_run_noteApp "$1"
-fi;
-#counter
-number=0
+fi
 
-#List all containing search string
-for f in "$list";
+# reset counter
+let i=0
+
+# List all containing search string
+for f in ${list[@]};
 	do
-	number=$(expr $number + 1)
-	echo $number $f	
+	let i++
+	printf "%3d %s\n" $i $f
 done
 
-#exits program if no results
-if [ $number == "0" ]; then
+# exits program if no results
+if test $i = "0"
+	then
 	echo "No results found!"
 	exit
-#if only one item in list, select it
-elif [ $number == "1" ]; then
-	_prep_search_res $number
+
+# if only one item in list, select it
+elif test $i = "1"
+then
+	_run_noteApp ${list[1]%.txt}
 	exit
 fi
 
-#promt user for selection
-echo -n "		Enter your choice (1-${number}) then press [enter] :"
+# promt user for selection
+printf "\n%s" "Enter your choice (1-${i}) then press [enter] :"
 read selection
 
 # If user press empty enter or emulator skips selection,
 # this ensures at least one valid selection.
-if [ -z "$selection" ];then
+if test -z "$selection"
+then
 	selection=1
 fi
 
-_prep_search_res $selection
+_run_noteApp ${list[$selection]%.txt}
 
