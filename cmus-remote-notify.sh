@@ -77,12 +77,12 @@ else
         if test $pos -eq 4
         then
             tag_info=${line:$pos}
-            tag_pos=$(expr "$tag_info" : '[a-z_]*. ')
+            tag_pos=$(expr "$tag_info" : '[a-zA-Z0-9_]*. ')
             tag=${tag_info:0:$tag_pos-1}
 
             if test $tag != ' '
             then
-                song_tags[$tag]=${tag_info:$tag_pos}
+                song_tags[$tag]="${tag_info:$tag_pos}"
             fi
         fi
     done <<< "$Cur_song"
@@ -94,6 +94,7 @@ else
 
     if test $1 != "-S"
     then
-        notify-send -i multimedia-volume-control -t 2200 "${song_tags[title]}" "${song_tags[album]}\n${song_tags[artist]}"
+        printf -v album_artist "%b\n%b" "${song_tags[album]}" "${song_tags[artist]}"
+        notify-send -i multimedia-volume-control -t 2200 "${song_tags[title]//&}" "${album_artist//&}"
     fi
 fi
