@@ -73,4 +73,4 @@ pack .c
 .c create oval 128 128 150 150 -fill #d4d4a4 -outline {} -tag moon
 .c create rect 0 0 1310 546  -fill black -tag bg
 
-after 100 loadImages
+after 10 loadImages

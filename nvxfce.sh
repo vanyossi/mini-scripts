@@ -31,6 +31,7 @@ cd $noteDir
 
 _run_noteApp()  
 {
+    # nohup = ignore hangup signals
     nohup zim --standalone $noteName "$1" & disown
     exit
 }

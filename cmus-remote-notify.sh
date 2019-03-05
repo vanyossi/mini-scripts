@@ -30,7 +30,7 @@ get_position () {
 
 if test ${#Cmus_remote} -eq 0
 then
-    # xfce4-terminal --maximize --hide-menubar -x cmus &&
+    xfce4-terminal --maximize --hide-menubar -x cmus &&
     # exo-open --launch TerminalEmulator cmus &&
     sleep 2
     # cmus-remote -p

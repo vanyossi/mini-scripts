@@ -1,9 +1,8 @@
 #!/usr/bin/wish
 #
 # Common variables
-#set ::targetDir {/home/tara/data/discos/Odisea/images/stocks/}
-#set ::targetDir {/home/tara/data/discos/Odisea/images/d-artist/}
-set ::targetDir {/home/tara/nalaf/nala/proyectos/wback/script-testing/deviantSort/}
+
+set ::deviantSort_test 1
 
 proc splitIndex { lista } {
  foreach i $lista {
@@ -39,8 +38,15 @@ proc makeDirs { elist } {
 			lappend mkdirlist $i
 		}
 	}
-	catch {file mkdir {*}[split $mkdirlist " "]}
-
+	if {$::deviantSort_test == 1} {
+		foreach folder $mkdirlist {
+			puts "$folder will be created"
+		}
+		
+	} else {
+		catch {file mkdir {*}[split $mkdirlist " "]}
+	}
+	
 	#Si se creo la lista, imprimimos mensaje.
 	if { ![catch {llength $mkdirlist}] } {
 		puts "mkdirs done"
@@ -57,14 +63,28 @@ proc moveFiles { elist target } {
 			set ftarget $target
 		}
 		set name [join $i ""]
-		#puts "[file normalize $name] $ftarget"
-		catch {file rename [file normalize $name] $ftarget}
+
+		if {$::deviantSort_test == 1} {
+			puts "[file normalize $name] $ftarget"
+		} else {
+			catch {file rename [file normalize $name] $ftarget}
+		}
 	}
 	puts "moving files success! \nexiting..."
 	exit
 }
 
 #Run program
+if {![file isdirectory [lindex $argv 0]]} {
+	puts "ERROR! first argument must be output directory"
+	puts "[lindex $argv 0] is nor directory"
+	exit
+}
+
+set ::targetDir [lindex $argv 0]
+puts "Sorted image files will be moved to [file normalize $::targetDir]"
+
+# Create file author list
 set sourceList [splitIndex $argv]
 makeDirs $sourceList
 moveFiles $sourceList $::targetDir

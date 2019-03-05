@@ -2,6 +2,8 @@
 # Converts png to jpeg using cjpeg library
 #   imagemagick cannot control jpeg smooth
 
+# Dropbox folder
+outputFolder="${HOME}"
 
 ## if no arguments, filename is date
 if test $# -ne 0
@@ -37,10 +39,17 @@ then
                 echo "converting ${FILE_name}"
                 pngtopnm $f | cjpeg -dct int -smooth 50 -quality 85 -optimize -outfile ${JPEG_namedir}
 
+
                 if test -e $DSC_namedir
                 then
                     echo "Cloning Exif from ${DSC_name} to ${JPEG_name}"
                     exiftool -overwrite_original -tagsfromfile ${DSC_namedir} -ColorSpace+=1 ${JPEG_namedir}
+                fi
+
+                if test -d $outputFolder
+                then
+                    echo "copying file to DropboxFolder"
+                    cp ${JPEG_namedir} ${outputFolder}
                 fi
             fi
         else
