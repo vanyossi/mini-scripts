@@ -1,10 +1,21 @@
-#!/usr/bin/wish
+#!/usr/bin/env wish
 
 #TODO Small Gui, one button, 24x24
 #TODO Set name of file and date format.
 #TODO Documentation
 #TODO Set values from GUI
 package require Tk
+package require platform
+
+proc idPlatform { } {
+  switch -glob -- [platform::identify] {
+    macosx* {
+      set dictData [dict create platform 0 format "avfoundation" idevice "1"]
+    }
+    default { set dictData [dict create platform 1 format "x11grab" idevice ":0.0"]}
+  }
+  return $dictData
+}
 
 # We only take one argument, if is a folder and writable
 # return folder path
@@ -31,14 +42,18 @@ proc chooseFolder { args } {
 # With all values arrange them into a nice commandline
 proc buildCommands { } {
 
-    set ::tclRecord(cmd_real) [list ffmpeg -f x11grab -s 1680x1050 -r 15 -i :0.0 \
+    set ::tclRecord(cmd_real) [list ffmpeg -f [dict get $::tclRecord(platform_special) format] -s 1680x1050 -r 15 -i [dict get $::tclRecord(platform_special) idevice] \
         -c:v libx264 -preset ultrafast -pix_fmt yuv420p -vf scale=1280:-1 \
         -an [getName scr_real_] &]
 
-    set ::tclRecord(cmd_timelapse) [list ffmpeg -f x11grab -s 1680x1050 -r 8 -i :0.0 \
-        -f yuv4mpegpipe -pix_fmt yuv420p - | yuvfps -s 30:1 -r 30:1 \
-        - | ffmpeg -f yuv4mpegpipe -i - -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
-        -vf scale=1280:-1 -an [getName scr_tmlps_] &]
+    set ::tclRecord(cmd_timelapse) [list ffmpeg -f [dict get $::tclRecord(platform_special) format] -s 1680x1050 -r 16 -i [dict get $::tclRecord(platform_special) idevice] \
+        -c:v libx264 -preset ultrafast -pix_fmt yuv420p -vf "scale=1280:-1,setpts=0.25*PTS,framerate=30" \
+        -an [getName scr_tmlps_] &]
+    # OLD using yuvfps
+    # set ::tclRecord(cmd_timelapse) [list ffmpeg -f dict get $::tclRecord(platform_special) format] -s 1680x1050 -r 8 -i :0.0 \
+    #     -f yuv4mpegpipe -pix_fmt yuv420p - | yuvfps -s 30:1 -r 30:1 \
+    #     - | ffmpeg -f yuv4mpegpipe -i - -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
+    #     -vf scale=1280:-1 -an [getName scr_tmlps_] &]
 }
 
 proc getName { name } {
@@ -86,8 +101,11 @@ proc startGui {} {
 
     # Do not show .dot files by default. (this does not work for OSX)
     catch { tk_getOpenFile foo bar }
-    set ::tk::dialog::file::showHiddenVar 0
-    set ::tk::dialog::file::showHiddenBtn 1
+
+    if {[dict get $::tclRecord(platform_special) platform]} {
+        set ::tk::dialog::file::showHiddenVar 0
+        set ::tk::dialog::file::showHiddenBtn 1
+    }
 }
 
 proc makeActions { w {child ".a"} } {
@@ -115,6 +133,8 @@ proc makeOptions { w {child ".o"} } {
 }
 
 wm title . "Record ffmpeg"
+
+set ::tclRecord(platform_special) [idPlatform]
 
 set ::tclRecord(record_dir) [ parseArgs ]
 set ::tclRecord(date) [clock format [clock seconds] -format %m%d]
